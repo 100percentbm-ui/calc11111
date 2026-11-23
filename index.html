@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crate Calculator</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --surface: #151922;
+    --surface-2: #1d2330;
+    --border: #2a3142;
+    --text: #e8ecf4;
+    --muted: #8a93a6;
+    --accent: #7c5cff;
+    --accent-2: #22d3ee;
+    --danger: #f43f5e;
+    --radius: 18px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --surface-2: #eef1f8;
+      --border: #dde2ee;
+      --text: #141826;
+      --muted: #6b7388;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,.18), transparent 60%),
+                radial-gradient(900px 500px at 110% 10%, rgba(34,211,238,.14), transparent 60%),
+                var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 0 48px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.02em; }
+  h1 span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+  .grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .grid { grid-template-columns: 1.1fr 1fr; } }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+  }
+  label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .08em; }
+  input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 1.1rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124,92,255,.2); }
+  .hint { font-size: .75rem; color: var(--muted); margin-top: 6px; }
+  .field + .field { margin-top: 18px; }
+  .btns { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  button {
+    border: none; cursor: pointer; border-radius: 12px; padding: 12px 18px;
+    font-size: .95rem; font-weight: 600; color: #fff;
+    background: linear-gradient(135deg, var(--accent), #5b8cff);
+    transition: transform .15s, opacity .2s;
+  }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 8px 12px; font-size: .8rem; }
+  button:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .result-main { text-align: center; padding: 8px 0 18px; }
+  .big { font-size: 3.2rem; font-weight: 800; letter-spacing: -0.03em;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .big-label { color: var(--muted); font-size: .85rem; }
+  .bar { height: 12px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin: 16px 0 22px; border: 1px solid var(--border); }
+  .bar > div { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .5s ease; border-radius: 999px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+  .stat .v { font-size: 1.15rem; font-weight: 700; margin-top: 4px; }
+  .error { color: var(--danger); font-size: .85rem; min-height: 1.2em; margin-top: 10px; }
+  .saved-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .saved-head h2 { font-size: 1.05rem; margin: 0; }
+  .saved-list { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+  .item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .item .pct { font-size: 1.2rem; font-weight: 700; }
+  .item .meta { font-size: .78rem; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .empty { color: var(--muted); text-align: center; padding: 28px 0; font-size: .9rem; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface); border: 1px solid var(--border); padding: 10px 16px; border-radius: 12px; opacity: 0; transition: .3s; pointer-events: none; font-size: .9rem; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span>Crate</span> Calculator</h1>
+      <div class="sub">See what share of your hourly income a crate represents</div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="field">
+        <label for="hourly">Income per hour</label>
+        <input id="hourly" placeholder="e.g. 114.15T" autocomplete="off" inputmode="decimal">
+        <div class="hint">Supports suffixes: K, M, B, T, Q</div>
+      </div>
+      <div class="field">
+        <label for="crate">Value per crate</label>
+        <input id="crate" placeholder="e.g. 37.20T" autocomplete="off" inputmode="decimal">
+      </div>
+      <div class="error" id="error"></div>
+      <div class="btns">
+        <button id="saveBtn" disabled>Save result</button>
+        <button class="ghost" id="clearBtn">Clear</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="result-main">
+        <div class="big" id="pct">0%</div>
+        <div class="big-label">of your hourly income per crate</div>
+      </div>
+      <div class="bar"><div id="bar"></div></div>
+      <div class="stats">
+        <div class="stat"><div class="big-label">Crates per hour</div><div class="v" id="cph">—</div></div>
+        <div class="stat"><div class="big-label">Minutes per crate</div><div class="v" id="mpc">—</div></div>
+        <div class="stat"><div class="big-label">Per crate</div><div class="v" id="crateOut">—</div></div>
+        <div class="stat"><div class="big-label">Per hour</div><div class="v" id="hourOut">—</div></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:20px">
+    <div class="saved-head">
+      <h2>Saved results</h2>
+      <div style="display:flex; gap:8px">
+        <button class="ghost" id="exportBtn">Export CSV</button>
+        <button class="danger" id="wipeBtn">Delete all</button>
+      </div>
+    </div>
+    <div class="saved-list" id="list"></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const KEY = "crateCalc.saved.v1";
+  const SUFFIX = { "": 1, K: 1e3, M: 1e6, B: 1e9, T: 1e12, Q: 1e15 };
+
+  const $ = (id) => document.getElementById(id);
+  const hourlyEl = $("hourly"), crateEl = $("crate"), saveBtn = $("saveBtn");
+  let current = null;
+
+  function parseAmount(raw) {
+    const s = String(raw).trim().replace(/,/g, "").toUpperCase();
+    const m = s.match(/^(\d+(?:\.\d+)?)\s*([KMBTQ]?)$/);
+    if (!m) return NaN;
+    return parseFloat(m[1]) * SUFFIX[m[2]];
+  }
+
+  function fmt(n) {
+    if (!isFinite(n)) return "—";
+    const units = [["Q", 1e15], ["T", 1e12], ["B", 1e9], ["M", 1e6], ["K", 1e3]];
+    for (const [u, v] of units) {
+      if (Math.abs(n) >= v) return (n / v).toFixed(2) + u;
+    }
+    return n.toFixed(2);
+  }
+
+  function compute() {
+    const hourly = parseAmount(hourlyEl.value);
+    const crate = parseAmount(crateEl.value);
+    const err = $("error");
+    current = null;
+
+    if (!hourlyEl.value.trim() && !crateEl.value.trim()) {
+      err.textContent = ""; render(null); return;
+    }
+    if (isNaN(hourly) || isNaN(crate)) {
+      err.textContent = "Enter numbers like 114.15T or 37.2B";
+      render(null); return;
+    }
+    if (hourly <= 0 || crate <= 0) {
+      err.textContent = "Values must be greater than zero";
+      render(null); return;
+    }
+    err.textContent = "";
+    current = {
+      hourly, crate,
+      pct: (crate / hourly) * 100,
+      cph: hourly / crate,
+      mpc: (crate / hourly) * 60
+    };
+    render(current);
+  }
+
+  function render(r) {
+    saveBtn.disabled = !r;
+    if (!r) {
+      $("pct").textContent = "0%";
+      $("bar").style.width = "0%";
+      ["cph", "mpc", "crateOut", "hourOut"].forEach(id => $(id).textContent = "—");
+      return;
+    }
+    $("pct").textContent = r.pct.toFixed(2) + "%";
+    $("bar").style.width = Math.min(r.pct, 100) + "%";
+    $("cph").textContent = r.cph.toFixed(2);
+    $("mpc").textContent = r.mpc >= 1 ? r.mpc.toFixed(2) + " min" : (r.mpc * 60).toFixed(0) + " sec";
+    $("crateOut").textContent = fmt(r.crate);
+    $("hourOut").textContent = fmt(r.hourly);
+  }
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function store(list) {
+    try { localStorage.setItem(KEY, JSON.stringify(list)); return true; }
+    catch (e) { toast("Could not save (storage unavailable)"); return false; }
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function renderList() {
+    const list = load();
+    const el = $("list");
+    if (!list.length) {
+      el.innerHTML = '<div class="empty">No saved results yet. Enter values and tap Save result.</div>';
+      return;
+    }
+    el.innerHTML = list.map(item => `
+      <div class="item">
+        <div>
+          <div class="pct">${item.pct.toFixed(2)}%</div>
+          <div class="meta">${esc(fmt(item.crate))} crate · ${esc(fmt(item.hourly))}/hr · ${item.cph.toFixed(2)} crates/hr<br>${esc(item.label)} · ${new Date(item.date).toLocaleString()}</div>
+        </div>
+        <button class="danger" data-id="${esc(item.id)}">Remove</button>
+      </div>`).join("");
+  }
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._h);
+    t._h = setTimeout(() => t.classList.remove("show"), 1800);
+  }
+
+  saveBtn.addEventListener("click", () => {
+    if (!current) return;
+    const list = load();
+    const label = (hourlyEl.value.trim() + " / " + crateEl.value.trim());
+    list.unshift({ id: String(Date.now()), date: new Date().toISOString(), label, ...current });
+    if (store(list)) { renderList(); toast("Result saved"); }
+  });
+
+  $("list").addEventListener("click", (e) => {
+    const id = e.target.dataset && e.target.dataset.id;
+    if (!id) return;
+    store(load().filter(i => i.id !== id));
+    renderList();
+  });
+
+  $("wipeBtn").addEventListener("click", () => {
+    if (!load().length) return;
+    if (confirm("Delete all saved results?")) { store([]); renderList(); }
+  });
+
+  $("exportBtn").addEventListener("click", () => {
+    const list = load();
+    if (!list.length) { toast("Nothing to export"); return; }
+    const rows = [["date", "income_per_hour", "value_per_crate", "percent", "crates_per_hour", "minutes_per_crate"]];
+    list.forEach(i => rows.push([i.date, i.hourly, i.crate, i.pct.toFixed(4), i.cph.toFixed(4), i.mpc.toFixed(4)]));
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "crate-results.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  $("clearBtn").addEventListener("click", () => {
+    hourlyEl.value = ""; crateEl.value = ""; compute(); hourlyEl.focus();
+  });
+
+  hourlyEl.addEventListener("input", compute);
+  crateEl.addEventListener("input", compute);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && current) saveBtn.click();
+  });
+
+  compute();
+  renderList();
+})();
+</script>
+</body>
+</html>
